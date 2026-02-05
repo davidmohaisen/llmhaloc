@@ -1,0 +1,123 @@
+# Common configuration settings shared across all machines
+
+# Data paths
+data:
+  input_dir: "../06_relevant_analysis_final_results" # Directory containing input files to process
+  ground_truth_path: "../../002_ground_truth_generation_java/02_ground_truth_java_functions.json" # Path to ground truth file
+
+# Output configuration
+output:
+  result_dir: "../08_function_analysis_results" # Output directory for processed files
+  log_dir: "./00_logs" # Local to the source code folder
+
+# Model configuration
+model:
+  name: "llama3.3:70b-instruct-q5_K_M" # Single model to use for all processing
+  context_window: 131072 # Context window size for the model
+
+# Logging configuration
+logging:
+  # Separate log files for different log levels
+  errors_only: true # Only store errors and warnings in a file, not info logs
+  error_log_file: "errors.log" # File for storing errors and warnings
+
+# Ollama API configuration
+ollama:
+  # API call parameters
+  keep_alive: -1 # Keep model loaded in memory (0 = default, -1 = indefinitely)
+  stream: false # Whether to stream the response
+  format: "json" # Response format (json or none)
+
+  # Generation options
+  options:
+    # Core generation parameters
+    temperature: 0.3 # Controls randomness (0.0-1.0, lower = more deterministic)
+    seed: 42 # Random seed for reproducibility
+    num_predict: 20480 # Maximum number of tokens to generate
+    top_k: 40 # Limits token selection to top K most likely tokens
+    top_p: 0.5 # Nucleus sampling (consider tokens comprising top p% of probability mass)
+
+    # Mirostat sampling algorithm parameters (adaptive control for perplexity)
+    mirostat: 1 # 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0
+    mirostat_eta: 0.1 # Learning rate for Mirostat algorithm
+    mirostat_tau: 3.0 # Target entropy for Mirostat algorithm
+
+    # Model-specific parameters
+    num_gqa: 8 # Number of group-query attention heads
+
+    # Repetition control
+    repeat_last_n: -1 # Consider last N tokens for repetition penalty (-1 = all)
+    repeat_penalty: 1.5 # Penalty for repeating tokens (1.0 = no penalty)
+
+    # Additional sampling parameters
+    tfs_z: 1.0 # Tail free sampling parameter
+
+# System prompt used for all models
+system_prompt: |
+  You are a **Code Security Response Analyst**. Your task is to review the **previous LLM’s response** and determine if a specific function from the source code file is considered **vulnerable** or **not vulnerable** based on the content of that response.
+
+  ### Context
+  1. A previous LLM has analyzed a code file for potential security vulnerabilities. Its response may or may not reference specific functions as vulnerable.
+  2. You are given:
+    - The **previous LLM’s response** (which can be in any format, possibly JSON or free text).
+    - The **function information**, including:
+      - Class name
+      - Subclass name (if any)
+      - Function name
+      - Full function body
+  3. Your job is to determine if this function is flagged as vulnerable according to the previous LLM’s response. If the function name or its body is explicitly mentioned as vulnerable, then you must classify it as **vulnerable**. Otherwise, classify it as **not vulnerable**.
+
+  ### Output Requirements
+  You must produce output in **JSON format** with the following structure:
+
+  ```json
+  {
+    "is_function_vulnerable": "<vulnerable or not vulnerable>",
+    "reasoning": "<concise reason>"
+  }
+  ```
+
+  Where:
+  - **is_function_vulnerable** should be either `"vulnerable"` or `"not vulnerable"`.
+  - **reasoning** should concisely explain why you arrived at that conclusion (e.g., the function name or body was cited in the response, or it was not mentioned at all).
+
+  ### Steps & Rules
+
+  1. **Parse the previous LLM’s response**: Look for any indication that the function in question (by name or by referencing its functionality) is deemed vulnerable.
+  2. **Check function details**: Compare the function name or relevant details with what the previous LLM flagged. If it matches or is described as risky, conclude that it is **vulnerable**.
+  3. **Justify your conclusion**:
+    - If the function is referenced or flagged in the previous LLM’s response, provide a brief rationale (e.g., “It was cited for improper input validation”).
+    - If there is no mention of the function or any related vulnerability in the previous LLM’s response, explain that it is not flagged as vulnerable.
+  4. **Output your findings** strictly in the designated JSON format.
+
+  ### Example
+
+  **Previous LLM’s Response**:
+  ```json
+  [
+    {
+      "vulnerable_function_signature": "someFunction(int param1, String param2)",
+      "reason": "Potential buffer overflow"
+    }
+  ]
+  ```
+  **Function Data**:
+  ```json
+  {
+    "class_name": "ExampleClass",
+    "subclass_name": null,
+    "function_name": "anotherFunction",
+    "function_body": " ... "
+  }
+  ```
+  **Analysis & Output**:
+  - The function in question, anotherFunction, does not appear in the vulnerable list from the previous LLM’s response.
+  - Therefore, the output is:
+
+  **Final JSON**:
+  ```json
+  {
+    "is_function_vulnerable": "not vulnerable",
+    "reasoning": "This function was not mentioned in the previous LLM’s vulnerability report."
+  }
+  ```

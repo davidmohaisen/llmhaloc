@@ -1,0 +1,25 @@
+# Mac-specific configuration
+
+# Machine identification
+machine:
+  name: "mac"
+  description: "Mac machine with smaller models"
+
+# Model context window sizes for Mac machine
+models:
+  glm4:9b-chat-fp16: 131072
+  deepseek-v2:16b-lite-chat-fp16: 163840
+  deepseek-coder-v2:16b-lite-instruct-fp16: 163840
+  codegemma:7b-instruct-v1.1-q5_K_M: 8192
+  gemma:7b-instruct-v1.1-fp16: 8192
+  gemma2:27b-instruct-q5_K_M: 8192
+  codellama:34b-instruct-q5_K_M: 16384
+  llama2:13b-chat-q5_K_M: 4096
+  mistral:7b-instruct-v0.2-fp16: 32768
+  mistral:7b-instruct-v0.3-fp16: 32768
+  phi:2.7b-chat-v2-fp16: 2048
+  phi3:3.8b-mini-4k-instruct-fp16: 4096
+  phi3:14b-medium-4k-instruct-fp16: 4096
+  marco-o1:7b-fp16: 32768
+  qwq:32b-preview-fp16: 32768
+  qwen3:32b-fp16: 40960

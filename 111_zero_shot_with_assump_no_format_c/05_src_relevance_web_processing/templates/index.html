@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>LLM Vulnerability Function Localization</title>
+        <link
+            rel="icon"
+            type="image/x-icon"
+            href="{{ url_for('static', path='/favicon.ico') }}?v={{ config.get_version() }}"
+        />
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            primary: {
+                                50: "#f0f9ff",
+                                100: "#e0f2fe",
+                                200: "#bae6fd",
+                                300: "#7dd3fc",
+                                400: "#38bdf8",
+                                500: "#0ea5e9",
+                                600: "#0284c7",
+                                700: "#0369a1",
+                                800: "#075985",
+                                900: "#0c4a6e",
+                            },
+                        },
+                        fontFamily: {
+                            sans: ["Inter", "system-ui", "sans-serif"],
+                            mono: ["Menlo", "Monaco", "Consolas", "monospace"],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            /* Custom styles that can't be handled by Tailwind */
+            .progress-bar::-webkit-progress-bar {
+                @apply bg-gray-200 dark:bg-gray-700 rounded-full;
+            }
+
+            .progress-bar::-webkit-progress-value {
+                @apply bg-primary-500 dark:bg-primary-400 rounded-full transition-all duration-300;
+            }
+
+            .progress-bar {
+                @apply appearance-none w-full h-4;
+            }
+
+            .hidden {
+                display: none !important;
+            }
+
+            .json-field-value {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+
+            /* Add smooth transitions */
+            .transition-all {
+                transition-property: all;
+                transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+                transition-duration: 300ms;
+            }
+
+            /* Custom scrollbar for better aesthetics */
+            ::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+
+            ::-webkit-scrollbar-track {
+                @apply bg-gray-100 dark:bg-gray-800 rounded;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                @apply bg-gray-400 dark:bg-gray-600 rounded;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                @apply bg-gray-500 dark:bg-gray-500;
+            }
+
+            /* JSON content styling */
+            .json-content {
+                font-family: "Menlo", "Monaco", "Consolas", monospace;
+                line-height: 1.5;
+            }
+
+            /* Highlight the primary decision content */
+            #response {
+                position: relative;
+                transition: all 0.3s ease;
+            }
+
+            #response:after {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.3);
+                border-radius: 0.5rem;
+                opacity: 0;
+                z-index: -1;
+                animation: pulse 2s ease-out;
+            }
+
+            @keyframes pulse {
+                0% {
+                    opacity: 0;
+                    transform: scale(0.98);
+                }
+
+                70% {
+                    opacity: 1;
+                    transform: scale(1.01);
+                }
+
+                100% {
+                    opacity: 0;
+                    transform: scale(1);
+                }
+            }
+
+            /* Animation classes */
+            .animate-pulse {
+                animation: pulse-animation 2s infinite;
+            }
+
+            @keyframes pulse-animation {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4);
+                }
+
+                70% {
+                    box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
+                }
+
+                100% {
+                    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+                }
+            }
+        </style>
+    </head>
+
+    <body
+        class="bg-gray-100 dark:bg-gray-900 min-h-screen transition-colors duration-300"
+    >
+        <div class="w-full px-0 py-0">
+            <div
+                class="w-full bg-white dark:bg-gray-800 shadow-md overflow-hidden transition-colors duration-300"
+            >
+                <div class="p-4 md:p-6">
+                    <!-- Top navigation bar with header and controls -->
+                    <div
+                        class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-4 px-6 mb-6"
+                    >
+                        <div
+                            class="flex flex-wrap justify-between items-center"
+                        >
+                            <!-- Title and dark mode toggle -->
+                            <div
+                                class="flex items-center space-x-4 mb-4 md:mb-0"
+                            >
+                                <h1
+                                    class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white"
+                                >
+                                    LLM Vulnerability Function Localization
+                                </h1>
+                                <button
+                                    id="dark-mode-toggle"
+                                    class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-6 w-6 hidden dark:block"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                                        />
+                                    </svg>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-6 w-6 block dark:hidden"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <!-- Control buttons -->
+                            <div class="flex space-x-4">
+                                <button
+                                    id="start-processing"
+                                    class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
+                                >
+                                    Start Processing
+                                </button>
+                                <button
+                                    id="stop-processing"
+                                    class="hidden px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                                >
+                                    Stop Processing
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress section -->
+                    <div class="mb-8 px-6">
+                        <!-- Current file info with status indicator -->
+                        <div
+                            class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between"
+                        >
+                            <h2
+                                class="text-xl font-semibold text-gray-700 dark:text-gray-300"
+                            >
+                                Current File:
+                                <span
+                                    id="current-filename"
+                                    class="text-gray-500 dark:text-gray-400 font-normal"
+                                    >No file selected</span
+                                >
+                            </h2>
+
+                            <!-- Processing status indicator -->
+                            <div
+                                id="processing-status"
+                                class="mt-2 md:mt-0 flex items-center"
+                            >
+                                <div
+                                    id="status-indicator"
+                                    class="w-3 h-3 rounded-full bg-gray-400 mr-2"
+                                ></div>
+                                <span
+                                    id="status-text"
+                                    class="text-sm font-medium text-gray-500 dark:text-gray-400"
+                                    >Idle</span
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Progress bars in a grid for wide screens -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                                <h2
+                                    class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-3"
+                                >
+                                    Overall Progress
+                                </h2>
+                                <div class="relative pt-1">
+                                    <div
+                                        class="flex mb-2 items-center justify-between"
+                                    >
+                                        <div>
+                                            <span
+                                                class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-primary-600 bg-primary-200 dark:text-primary-200 dark:bg-primary-800"
+                                            >
+                                                Progress
+                                            </span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span
+                                                id="total-progress-text"
+                                                class="text-xs font-semibold inline-block text-primary-600 dark:text-primary-400"
+                                            >
+                                                0.00%
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-primary-200 dark:bg-gray-700"
+                                    >
+                                        <div
+                                            id="total-progress-bar"
+                                            class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-500 dark:bg-primary-400"
+                                            style="width: 0%"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h2
+                                    class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-3"
+                                >
+                                    Current File Progress
+                                </h2>
+                                <div class="relative pt-1">
+                                    <div
+                                        class="flex mb-2 items-center justify-between"
+                                    >
+                                        <div>
+                                            <span
+                                                class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-primary-600 bg-primary-200 dark:text-primary-200 dark:bg-primary-800"
+                                            >
+                                                Progress
+                                            </span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span
+                                                id="file-progress-text"
+                                                class="text-xs font-semibold inline-block text-primary-600 dark:text-primary-400"
+                                            >
+                                                0.00%
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-primary-200 dark:bg-gray-700"
+                                    >
+                                        <div
+                                            id="file-progress-bar"
+                                            class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-500 dark:bg-primary-400"
+                                            style="width: 0%"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- JSON display -->
+                    <div id="json-display" class="mb-8 px-6">
+                        <!-- Current file and object info header -->
+                        <div
+                            class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+                        >
+                            <div>
+                                <h2
+                                    id="json-display-title"
+                                    class="text-xl font-semibold text-gray-700 dark:text-gray-300"
+                                >
+                                    Current Analysis
+                                </h2>
+                                <div
+                                    class="text-sm text-gray-500 dark:text-gray-400 mt-1"
+                                >
+                                    File:
+                                    <span
+                                        id="current-filename-display"
+                                        class="font-medium text-gray-700 dark:text-gray-300"
+                                        >No file selected</span
+                                    >
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mt-2 md:mt-0">
+                                <div
+                                    class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-md text-sm font-medium flex items-center"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 mr-1"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
+                                        />
+                                    </svg>
+                                    ID:
+                                    <span id="header-id" class="ml-1 font-mono"
+                                        >-</span
+                                    >
+                                </div>
+                                <div
+                                    class="bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-md text-sm font-medium flex items-center"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 mr-1"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                                        />
+                                    </svg>
+                                    Sub ID:
+                                    <span
+                                        id="header-sub-id"
+                                        class="ml-1 font-mono"
+                                        >-</span
+                                    >
+                                </div>
+                                <div
+                                    class="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-3 py-1 rounded-md text-sm font-medium flex items-center"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 mr-1"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                                        />
+                                    </svg>
+                                    Code ID:
+                                    <span
+                                        id="header-code-id"
+                                        class="ml-1 font-mono"
+                                        >-</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main content section with improved layout -->
+                        <div class="mb-6">
+                            <!-- Section header with clear instructions -->
+                            <div
+                                class="bg-primary-50 dark:bg-primary-900/30 p-4 rounded-lg mb-4 border-l-4 border-primary-500 dark:border-primary-400"
+                            >
+                                <div
+                                    class="flex flex-wrap items-start justify-between gap-2"
+                                >
+                                    <h3
+                                        id="review-instructions-title"
+                                        class="text-lg font-semibold text-primary-700 dark:text-primary-300"
+                                    >
+                                        Vulnerability Assessment Instructions
+                                    </h3>
+                                    <span
+                                        id="review-stage-badge"
+                                        class="px-3 py-1 rounded-full text-xs font-semibold uppercase bg-primary-100 text-primary-700 dark:bg-primary-800 dark:text-primary-200"
+                                    >
+                                        Step 1 of 2
+                                    </span>
+                                </div>
+                                <p
+                                    id="review-instructions-body"
+                                    class="text-primary-600 dark:text-primary-400 mt-1"
+                                >
+                                    Review the LLM response below and make your
+                                    decision based only on the
+                                    <span class="font-bold">Response</span>
+                                    content.
+                                </p>
+                            </div>
+                            <div
+                                id="second-review-banner"
+                                class="hidden bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-500 text-yellow-800 dark:text-yellow-100 p-4 rounded-lg mb-4"
+                            >
+                                <div class="flex items-start">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5 mr-2 mt-0.5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                                        />
+                                    </svg>
+                                    <div>
+                                        <div class="font-semibold">
+                                            Second Review Required
+                                        </div>
+                                        <p
+                                            id="second-review-message"
+                                            class="text-sm mt-1"
+                                        >
+                                            Please review the relevance analysis
+                                            and confirm your final decision.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Two-column layout for larger screens, single column for mobile -->
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <!-- Primary content (Response) - takes 2/3 of the space on large screens -->
+                                <div id="response-panel" class="lg:col-span-3">
+                                    <div
+                                        id="response"
+                                        class="bg-white dark:bg-gray-800 border-2 border-primary-500 dark:border-primary-400 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
+                                    >
+                                        <!-- Header with badge -->
+                                        <div
+                                            class="bg-primary-50 dark:bg-primary-900/30 px-4 py-3 rounded-t-lg border-b border-primary-200 dark:border-primary-700"
+                                        >
+                                            <div
+                                                class="flex items-center justify-between"
+                                            >
+                                                <div
+                                                    class="font-semibold text-primary-700 dark:text-primary-300 text-lg"
+                                                >
+                                                    LLM Response
+                                                </div>
+                                                <div
+                                                    class="bg-primary-100 dark:bg-primary-800 text-primary-800 dark:text-primary-200 px-3 py-1 rounded-full text-sm font-medium"
+                                                >
+                                                    Primary Decision Content
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Content area with better spacing -->
+                                        <div class="p-4">
+                                            <div
+                                                class="json-field-value font-mono text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700 max-h-[500px] overflow-y-auto"
+                                            >
+                                                -
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Secondary content (Relevance Analysis) - takes 1/3 of the space on large screens -->
+                                <div class="lg:col-span-1">
+                                    <div
+                                        id="relevance_analysis"
+                                        class="hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
+                                    >
+                                        <!-- Header with badge -->
+                                        <div
+                                            class="bg-gray-50 dark:bg-gray-700 px-4 py-3 rounded-t-lg border-b border-gray-200 dark:border-gray-600"
+                                        >
+                                            <div
+                                                class="flex items-center justify-between"
+                                            >
+                                                <div
+                                                    class="font-semibold text-gray-700 dark:text-gray-300 text-lg"
+                                                >
+                                                    Relevance Analysis
+                                                </div>
+                                                <div
+                                                    class="bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full text-sm font-medium"
+                                                >
+                                                    Supplementary
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Content area -->
+                                        <div class="p-4">
+                                            <div
+                                                class="text-sm text-gray-500 dark:text-gray-400 mb-3 italic"
+                                            >
+                                                Shown during second review to
+                                                provide additional context
+                                            </div>
+                                            <div
+                                                class="json-field-value font-mono text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700 max-h-[500px] overflow-y-auto"
+                                            >
+                                                -
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Compact metadata section with collapsible details -->
+                        <div class="mb-6">
+                            <details
+                                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+                            >
+                                <summary
+                                    class="px-4 py-3 cursor-pointer text-gray-700 dark:text-gray-300 font-medium flex items-center justify-between"
+                                >
+                                    <div class="flex items-center">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            />
+                                        </svg>
+                                        Metadata & Processing Info
+                                    </div>
+                                    <div
+                                        class="flex flex-wrap items-center gap-2"
+                                    >
+                                        <span
+                                            id="id-badge"
+                                            class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs px-2 py-1 rounded-full"
+                                        >
+                                            ID:
+                                            <span
+                                                id="id-value"
+                                                class="font-mono"
+                                                >-</span
+                                            >
+                                        </span>
+                                        <span
+                                            id="sub-id-badge"
+                                            class="bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-1 rounded-full"
+                                        >
+                                            Sub ID:
+                                            <span
+                                                id="sub-id-value"
+                                                class="font-mono"
+                                                >-</span
+                                            >
+                                        </span>
+                                        <span
+                                            id="code-id-badge"
+                                            class="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs px-2 py-1 rounded-full"
+                                        >
+                                            Code ID:
+                                            <span
+                                                id="code-id-value"
+                                                class="font-mono"
+                                                >-</span
+                                            >
+                                        </span>
+                                    </div>
+                                </summary>
+
+                                <div
+                                    class="p-4 border-t border-gray-200 dark:border-gray-700"
+                                >
+                                    <!-- Metadata grid - more compact layout -->
+                                    <div
+                                        class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 text-sm"
+                                    >
+                                        <!-- ID fields -->
+                                        <div id="id" class="flex flex-col">
+                                            <span
+                                                class="text-gray-500 dark:text-gray-400"
+                                                >ID</span
+                                            >
+                                            <span
+                                                class="json-field-value font-mono text-gray-800 dark:text-gray-200"
+                                                >-</span
+                                            >
+                                        </div>
+                                        <div id="sub_id" class="flex flex-col">
+                                            <span
+                                                class="text-gray-500 dark:text-gray-400"
+                                                >Sub ID</span
+                                            >
+                                            <span
+                                                class="json-field-value font-mono text-gray-800 dark:text-gray-200"
+                                                >-</span
+                                            >
+                                        </div>
+                                        <div id="code_id" class="flex flex-col">
+                                            <span
+                                                class="text-gray-500 dark:text-gray-400"
+                                                >Code ID</span
+                                            >
+                                            <span
+                                                class="json-field-value font-mono text-gray-800 dark:text-gray-200"
+                                                >-</span
+                                            >
+                                        </div>
+
+                                        <!-- Duration fields -->
+                                        <div
+                                            id="total_duration"
+                                            class="flex flex-col"
+                                        >
+                                            <span
+                                                class="text-gray-500 dark:text-gray-400"
+                                                >Total Duration</span
+                                            >
+                                            <span
+                                                class="json-field-value font-mono text-gray-800 dark:text-gray-200"
+                                                >-</span
+                                            >
+                                        </div>
+                                        <div
+                                            id="load_duration"
+                                            class="flex flex-col"
+                                        >
+                                            <span
+                                                class="text-gray-500 dark:text-gray-400"
+                                                >Load Duration</span
+                                            >
+                                            <span
+                                                class="json-field-value font-mono text-gray-800 dark:text-gray-200"
+                                                >-</span
+                                            >
+                                        </div>
+
+                                        <!-- Evaluation fields -->
+                                        <div
+                                            id="prompt_eval_count"
+                                            class="flex flex-col"
+                                        >
+                                            <span
+                                                class="text-gray-500 dark:text-gray-400"
+                                                >Prompt Eval Count</span
+                                            >
+                                            <span
+                                                class="json-field-value font-mono text-gray-800 dark:text-gray-200"
+                                                >-</span
+                                            >
+                                        </div>
+                                        <div
+                                            id="prompt_eval_duration"
+                                            class="flex flex-col"
+                                        >
+                                            <span
+                                                class="text-gray-500 dark:text-gray-400"
+                                                >Prompt Eval Duration</span
+                                            >
+                                            <span
+                                                class="json-field-value font-mono text-gray-800 dark:text-gray-200"
+                                                >-</span
+                                            >
+                                        </div>
+                                        <div
+                                            id="eval_count"
+                                            class="flex flex-col"
+                                        >
+                                            <span
+                                                class="text-gray-500 dark:text-gray-400"
+                                                >Eval Count</span
+                                            >
+                                            <span
+                                                class="json-field-value font-mono text-gray-800 dark:text-gray-200"
+                                                >-</span
+                                            >
+                                        </div>
+                                        <div
+                                            id="eval_duration"
+                                            class="flex flex-col"
+                                        >
+                                            <span
+                                                class="text-gray-500 dark:text-gray-400"
+                                                >Eval Duration</span
+                                            >
+                                            <span
+                                                class="json-field-value font-mono text-gray-800 dark:text-gray-200"
+                                                >-</span
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+
+                    <!-- Decision buttons - fixed at bottom when visible -->
+                    <div id="decision-buttons" class="hidden">
+                        <div
+                            class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 shadow-lg py-4 px-6 z-10"
+                        >
+                            <div class="max-w-7xl mx-auto">
+                                <!-- Decision header with clear instructions -->
+                                <div
+                                    class="flex items-center justify-between mb-4"
+                                >
+                                    <h3
+                                        class="text-xl font-semibold text-gray-800 dark:text-gray-200"
+                                    >
+                                        <span
+                                            class="text-primary-600 dark:text-primary-400 mr-2"
+                                            >→</span
+                                        >
+                                        Make Your Decision
+                                        <span
+                                            id="decision-stage-label"
+                                            class="ml-2 text-sm font-medium text-gray-500 dark:text-gray-400"
+                                            >Step 1 of 2</span
+                                        >
+                                    </h3>
+                                    <div
+                                        class="text-sm text-gray-500 dark:text-gray-400 italic"
+                                    >
+                                        Use keyboard shortcuts (Q, W, E, S) for
+                                        faster decision-making
+                                    </div>
+                                </div>
+
+                                <!-- Decision buttons with improved visual hierarchy -->
+                                <div
+                                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+                                >
+                                    <!-- Not Vulnerable button -->
+                                    <button
+                                        id="not-vulnerable-btn"
+                                        class="btn-decision group relative px-4 py-4 bg-white hover:bg-red-50 dark:bg-gray-700 dark:hover:bg-red-900/20 border-2 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 text-lg flex items-center justify-center"
+                                    >
+                                        <div
+                                            class="absolute inset-0 bg-red-500 dark:bg-red-600 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200"
+                                        ></div>
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-5 w-5 mr-2"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                clip-rule="evenodd"
+                                            />
+                                        </svg>
+                                        Not Vulnerable
+                                        <span class="text-sm ml-1 opacity-70"
+                                            >(Q)</span
+                                        >
+                                    </button>
+
+                                    <!-- Vulnerable button -->
+                                    <button
+                                        id="vulnerable-btn"
+                                        class="btn-decision group relative px-4 py-4 bg-white hover:bg-green-50 dark:bg-gray-700 dark:hover:bg-green-900/20 border-2 border-green-500 dark:border-green-600 text-green-600 dark:text-green-400 font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 text-lg flex items-center justify-center"
+                                    >
+                                        <div
+                                            class="absolute inset-0 bg-green-500 dark:bg-green-600 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200"
+                                        ></div>
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-5 w-5 mr-2"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                clip-rule="evenodd"
+                                            />
+                                        </svg>
+                                        Vulnerable
+                                        <span class="text-sm ml-1 opacity-70"
+                                            >(W)</span
+                                        >
+                                    </button>
+
+                                    <!-- Not Relevant button -->
+                                    <button
+                                        id="not-relevant-btn"
+                                        class="btn-decision group relative px-4 py-4 bg-white hover:bg-yellow-50 dark:bg-gray-700 dark:hover:bg-yellow-900/20 border-2 border-yellow-500 dark:border-yellow-600 text-yellow-600 dark:text-yellow-400 font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50 text-lg flex items-center justify-center"
+                                    >
+                                        <div
+                                            class="absolute inset-0 bg-yellow-500 dark:bg-yellow-600 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity duration-200"
+                                        ></div>
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-5 w-5 mr-2"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                                clip-rule="evenodd"
+                                            />
+                                        </svg>
+                                        Not Relevant
+                                        <span class="text-sm ml-1 opacity-70"
+                                            >(E)</span
+                                        >
+                                    </button>
+
+                                    <!-- Submit button -->
+                                    <button
+                                        id="submit-decision"
+                                        class="group relative px-4 py-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 text-lg flex items-center justify-center"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-5 w-5 mr-2"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clip-rule="evenodd"
+                                            />
+                                        </svg>
+                                        Submit Decision
+                                        <span class="text-sm ml-1 opacity-70"
+                                            >(S)</span
+                                        >
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Spacer to prevent content from being hidden behind fixed buttons -->
+                        <div class="h-36"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div
+            class="w-full bg-gray-200 dark:bg-gray-800 py-4 border-t border-gray-300 dark:border-gray-700"
+        >
+            <div class="text-center text-gray-500 dark:text-gray-400 text-sm">
+                <p>
+                    LLM Vulnerability Function Localization System - Relevance
+                    Analysis UI &copy;
+                </p>
+            </div>
+        </div>
+
+        <script src="{{ url_for('static', path='/script.js') }}?v={{ config.get_version() }}"></script>
+    </body>
+</html>

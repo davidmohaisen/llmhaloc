@@ -1,0 +1,17 @@
+{
+  "name": "function-analysis-ui",
+  "version": "1.0.0",
+  "description": "LLM Vulnerability Function Localization Web Processing UI",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./static/src/styles.css -o ./static/styles.css",
+    "watch:css": "npx tailwindcss -i ./static/src/styles.css -o ./static/styles.css --watch",
+    "dev": "concurrently \"npm run watch:css\" \"python -m uvicorn main:app --host 0.0.0.0 --port 8080 --reload --ssl-keyfile=certs/server.key --ssl-certfile=certs/server.crt\""
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.6",
+    "concurrently": "^8.2.2",
+    "tailwindcss": "^4.1.6"
+  }
+}

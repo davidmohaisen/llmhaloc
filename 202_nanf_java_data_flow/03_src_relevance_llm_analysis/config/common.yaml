@@ -1,0 +1,85 @@
+# Common configuration settings shared across all machines
+
+# Data paths
+data:
+  input_dir: "../02_initial_results" # Directory containing input files to process
+
+# Output configuration
+output:
+  result_dir: "../04_relevant_analysis_results" # Output directory for processed files
+  log_dir: "./00_logs" # Local to the source code folder
+
+# Model configuration
+model:
+  name: "llama3.3:70b-instruct-q5_K_M" # Single model to use for all processing
+  context_window: 131072 # Context window size for the model
+
+# Logging configuration
+logging:
+  # Separate log files for different log levels
+  errors_only: true # Only store errors and warnings in a file, not info logs
+  error_log_file: "errors.log" # File for storing errors and warnings
+
+# Ollama API configuration
+ollama:
+  # API call parameters
+  keep_alive: -1 # Keep model loaded in memory (0 = default, -1 = indefinitely)
+  stream: false # Whether to stream the response
+  format: "json" # Response format (json or none)
+
+  # Generation options
+  options:
+    # Core generation parameters
+    temperature: 0.3 # Controls randomness (0.0-1.0, lower = more deterministic)
+    seed: 42 # Random seed for reproducibility
+    num_predict: 20480 # Maximum number of tokens to generate
+    top_k: 40 # Limits token selection to top K most likely tokens
+    top_p: 0.5 # Nucleus sampling (consider tokens comprising top p% of probability mass)
+
+    # Mirostat sampling algorithm parameters (adaptive control for perplexity)
+    mirostat: 1 # 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0
+    mirostat_eta: 0.1 # Learning rate for Mirostat algorithm
+    mirostat_tau: 3.0 # Target entropy for Mirostat algorithm
+
+    # Model-specific parameters
+    num_gqa: 8 # Number of group-query attention heads
+
+    # Repetition control
+    repeat_last_n: -1 # Consider last N tokens for repetition penalty (-1 = all)
+    repeat_penalty: 1.5 # Penalty for repeating tokens (1.0 = no penalty)
+
+    # Additional sampling parameters
+    tfs_z: 1.0 # Tail free sampling parameter
+
+# System prompt used for all models
+system_prompt: |
+  Role: LLM Vulnerability Response Verifier
+  Objective: Validate whether the response from the LLM adheres to the task of identifying vulnerable functions in the provided source code. Even if multiple instances of vulnerable functions are mentioned, your task is to provide one unified classification for the entire response.
+
+  Instructions:
+  1.	Review the Response: Carefully analyze the content provided by the LLM.
+  2.	Classify the Entire Response: Based on the overall content, classify the response into one of the following categories:
+      •	“vulnerable”: At least one vulnerable function is explicitly stated, or the reasoning implies the presence of a vulnerability.
+      •	“not vulnerable”: The response explicitly states that all the functions or code are not vulnerable. If explicit confirmation is missing, but the reasoning supports a lack of vulnerabilities, classify it as “not vulnerable.”
+      •	“not relevant”: The response does not address the vulnerability status of the code or functions, either explicitly or implicitly.
+  3.	Provide Reasoning: Write a brief explanation to justify your classification. Reference any specific parts of the response (explicit statements or reasoning) that influenced your decision.
+
+  Output Format:
+  Return the output in JSON format as follows:
+
+  ```json
+  {
+    "result": "vulnerable | not vulnerable | not relevant",
+    "reasoning": "A concise explanation referencing specific statements or reasoning in the LLM response to justify the single classification for the entire response."
+  }
+  ```
+
+  Additional Notes
+    •	Even if multiple instances of vulnerable or non-vulnerable functions are mentioned, provide only one classification for the entire response.
+    •	Focus solely on the LLM’s adherence to identifying vulnerabilities and its reasoning process.
+    •	Ensure your reasoning directly references content in the response that supports your final classification.
+
+  Clarifications
+    •	“vulnerable” takes precedence if even one vulnerable function is identified explicitly or implicitly.
+    •	If the response explicitly states no vulnerabilities exist or reasoning supports this, classify it as “not vulnerable”.
+    •	If the response is unrelated to the task or ambiguous, classify it as “not relevant”.

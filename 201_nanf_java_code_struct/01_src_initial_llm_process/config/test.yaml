@@ -1,0 +1,11 @@
+# Test-specific configuration
+
+# Machine identification
+machine:
+  name: "test"
+  description: "Test configuration with limited models"
+
+# Model context window sizes for test machine
+models:
+  marco-o1:7b-fp16: 32768
+  glm4:9b-chat-fp16: 131072

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Function Analysis Processing</title>
+    <!-- Add cache control meta tags -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/favicon.ico') }}?v={{ cache_buster }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        glass: {
+                            white: 'rgba(255, 255, 255, 0.7)',
+                            blue: 'rgba(219, 234, 254, 0.7)',
+                            yellow: 'rgba(254, 249, 195, 0.7)',
+                            red: 'rgba(254, 226, 226, 0.7)',
+                            green: 'rgba(220, 252, 231, 0.7)',
+                            purple: 'rgba(237, 233, 254, 0.7)',
+                            gray: 'rgba(241, 245, 249, 0.7)',
+                        }
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="{{ url_for('static', path='/styles.css') }}?v={{ cache_buster }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen font-sans text-slate-800">
+    <!-- Top Navigation Bar -->
+    <div class="sticky top-0 z-50 backdrop-blur-md bg-glass-white border-b border-white/20 shadow-sm">
+        <div class="w-full px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-blue-500" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <h1 class="text-xl md:text-2xl font-semibold text-slate-800">Function Analysis Dashboard</h1>
+            </div>
+
+            <!-- Control Button -->
+            <div class="flex items-center">
+                <button id="processing-toggle"
+                    class="px-5 py-2.5 bg-blue-500 text-white rounded-lg font-medium shadow-md hover:bg-blue-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    <span id="processing-toggle-text">Start Processing</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Analysis Alert Banner -->
+    <div id="manual-analysis-banner" class="hidden w-full bg-red-600 text-white py-3 px-4 shadow-lg">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 animate-pulse" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span class="font-bold text-lg">ATTENTION: Manual analysis required for current function</span>
+            </div>
+            <div>
+                <span class="text-sm bg-white text-red-600 px-3 py-1 rounded-full font-medium">Please make a decision
+                    below</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="w-full px-4 py-8">
+        <!-- Main Content Container -->
+
+        <!-- Progress Section with Side-by-Side Bars -->
+        <div class="mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Overall Progress Bar -->
+                <div
+                    class="backdrop-blur-sm bg-glass-blue rounded-xl shadow-sm border border-blue-200/50 overflow-hidden">
+                    <div class="px-4 py-2 bg-blue-500/80 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white mr-2" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            <h2 class="text-xs font-medium text-white">Overall Progress</h2>
+                        </div>
+                        <span id="file-progress-text"
+                            class="text-xs font-medium text-white bg-blue-600/50 backdrop-blur-xs px-2 py-0.5 rounded-lg">File
+                            0 of 0 (0.00%)</span>
+                    </div>
+                    <div class="p-2">
+                        <div class="h-1.5 w-full bg-white/50 rounded-full overflow-hidden">
+                            <div id="total-progress"
+                                class="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
+                                style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current File Progress Bar -->
+                <div
+                    class="backdrop-blur-sm bg-glass-green rounded-xl shadow-sm border border-green-200/50 overflow-hidden">
+                    <div class="px-4 py-2 bg-green-500/80 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white mr-2" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                            </svg>
+                            <h2 class="text-xs font-medium text-white">Current File</h2>
+                        </div>
+                        <span id="object-progress-text"
+                            class="text-xs font-medium text-white bg-green-600/50 backdrop-blur-xs px-2 py-0.5 rounded-lg">Object
+                            0 of 0 (0.00%)</span>
+                    </div>
+                    <div class="p-2">
+                        <div class="h-1.5 w-full bg-white/50 rounded-full overflow-hidden">
+                            <div id="file-progress"
+                                class="h-full bg-green-500 rounded-full transition-all duration-500 ease-out"
+                                style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clickable Metadata Status Bar -->
+        <div class="backdrop-blur-sm bg-glass-purple rounded-xl shadow-sm border border-purple-200/50 mb-6">
+            <!-- Main Metadata Row (Always Visible) -->
+            <button id="metadata-toggle"
+                class="w-full px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-purple-50/30 transition-colors rounded-xl">
+                <div class="flex items-center overflow-hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-600 mr-2 flex-shrink-0"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+
+                    <!-- File info with IDs inline -->
+                    <div class="flex flex-wrap items-center overflow-hidden">
+                        <span class="text-xs font-medium text-purple-700 mr-1">File:</span>
+                        <span id="current-filename" class="text-xs font-medium text-slate-700 truncate mr-3">No file
+                            selected</span>
+
+                        <span class="text-xs font-medium text-purple-700 mr-1">ID:</span>
+                        <span id="id" class="text-xs font-medium text-slate-700 mr-3">-</span>
+
+                        <span class="text-xs font-medium text-purple-700 mr-1">Sub:</span>
+                        <span id="sub_id" class="text-xs font-medium text-slate-700 mr-3">-</span>
+
+                        <span class="text-xs font-medium text-purple-700 mr-1">Code:</span>
+                        <span id="code_id" class="text-xs font-medium text-slate-700 mr-3">-</span>
+
+                        <span class="text-xs font-medium text-purple-700 mr-1">Func:</span>
+                        <span id="function_id" class="text-xs font-medium text-slate-700">-</span>
+                    </div>
+                </div>
+
+                <!-- Toggle indicator -->
+                <svg id="metadata-chevron" xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 text-purple-600 transform transition-transform duration-200" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+
+            <!-- Detailed Metadata (Hidden by Default) -->
+            <div id="metadata-content" class="hidden border-t border-purple-200/30">
+                <div class="px-4 py-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div class="flex items-center">
+                        <span class="text-xs font-medium text-purple-700 mr-1">Human Patch:</span>
+                        <span id="meta-human-patch" class="text-xs font-medium text-slate-700 truncate">-</span>
+                    </div>
+
+                    <div class="flex items-center">
+                        <span class="text-xs font-medium text-purple-700 mr-1">CVE:</span>
+                        <span id="meta-cve-id" class="text-xs font-medium text-slate-700">-</span>
+                    </div>
+
+                    <div class="flex items-center">
+                        <span class="text-xs font-medium text-purple-700 mr-1">CWE:</span>
+                        <span id="meta-cwe-id" class="text-xs font-medium text-slate-700">-</span>
+                    </div>
+
+                    <div class="flex items-center">
+                        <span class="text-xs font-medium text-purple-700 mr-1">Relevance:</span>
+                        <span id="meta-relevance-label" class="text-xs font-medium text-slate-700">-</span>
+                    </div>
+
+                    <div class="flex items-center">
+                        <span class="text-xs font-medium text-purple-700 mr-1">Eval Count:</span>
+                        <span id="meta-eval-count" class="text-xs font-medium text-slate-700">-</span>
+                    </div>
+
+                    <div class="flex items-center">
+                        <span class="text-xs font-medium text-purple-700 mr-1">Total Duration:</span>
+                        <span id="meta-total-duration" class="text-xs font-medium text-slate-700">-</span>
+                    </div>
+
+                    <div class="flex items-center">
+                        <span class="text-xs font-medium text-purple-700 mr-1">Prompt Eval Count:</span>
+                        <span id="meta-prompt-eval-count" class="text-xs font-medium text-slate-700">-</span>
+                    </div>
+
+                    <div class="flex items-center">
+                        <span class="text-xs font-medium text-purple-700 mr-1">Prompt Eval Duration:</span>
+                        <span id="meta-prompt-eval-duration" class="text-xs font-medium text-slate-700">-</span>
+                    </div>
+
+                    <div class="flex items-center">
+                        <span class="text-xs font-medium text-purple-700 mr-1">Eval Duration:</span>
+                        <span id="meta-eval-duration" class="text-xs font-medium text-slate-700">-</span>
+                    </div>
+
+                    <div class="flex items-center">
+                        <span class="text-xs font-medium text-purple-700 mr-1">Load Duration:</span>
+                        <span id="meta-load-duration" class="text-xs font-medium text-slate-700">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JSON Display -->
+        <div id="json-display" class="space-y-6">
+            <div class="flex items-center justify-between">
+                <h2 id="json-display-title" class="text-xl font-bold text-slate-800">Function Analysis</h2>
+                <!-- Manual Analysis Indicator -->
+                <div id="manual-analysis-indicator"
+                    class="hidden px-4 py-2 bg-red-100 text-red-800 border-2 border-red-500 rounded-lg font-bold text-base flex items-center shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    MANUAL ANALYSIS REQUIRED
+                </div>
+            </div>
+
+            <!-- Additional Metadata (Hidden but preserved for JS functionality) -->
+            <div class="hidden">
+                <div id="is_vulnerable"></div>
+                <div id="relevance_label"></div>
+                <div id="function_label"></div>
+                <div id="filename"></div>
+                <div id="human_patch"></div>
+                <div id="cve_id"></div>
+                <div id="cwe_id"></div>
+                <div id="prompt_eval_count"></div>
+                <div id="prompt_eval_duration"></div>
+                <div id="eval_count"></div>
+                <div id="eval_duration"></div>
+                <div id="total_duration"></div>
+                <div id="load_duration"></div>
+            </div>
+
+            <!-- Side-by-Side Function and Response -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Function Information Block -->
+                <div
+                    class="backdrop-blur-sm bg-glass-yellow rounded-xl shadow-sm border border-yellow-200/50 overflow-hidden">
+                    <div class="px-5 py-4 bg-yellow-500/80 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white mr-2" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        <h2 class="text-base font-medium text-white">Function Information</h2>
+                        <div
+                            class="ml-auto px-3 py-1 bg-white/80 backdrop-blur-xs text-yellow-700 rounded-lg text-xs font-medium">
+                            Primary Decision Info</div>
+                    </div>
+                    <div class="p-5">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                            <div id="class_name" class="bg-white/80 backdrop-blur-xs p-3 rounded-lg shadow-sm">
+                                <div class="text-sm font-medium text-yellow-700 flex items-center mb-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                    Class Name
+                                </div>
+                                <div class="text-slate-700 font-medium">-</div>
+                            </div>
+                            <div id="subclass_name" class="bg-white/80 backdrop-blur-xs p-3 rounded-lg shadow-sm">
+                                <div class="text-sm font-medium text-yellow-700 flex items-center mb-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    Subclass Name
+                                </div>
+                                <div class="text-slate-700 font-medium">-</div>
+                            </div>
+                            <div id="function_name" class="bg-white/80 backdrop-blur-xs p-3 rounded-lg shadow-sm">
+                                <div class="text-sm font-medium text-yellow-700 flex items-center mb-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                    </svg>
+                                    Function Name
+                                </div>
+                                <div class="text-slate-700 font-medium">-</div>
+                            </div>
+                        </div>
+                        <div id="function_body" class="space-y-2">
+                            <div class="text-sm font-medium text-yellow-700 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Function Body
+                            </div>
+                            <div
+                                class="p-4 bg-white/80 backdrop-blur-xs rounded-lg text-slate-700 text-sm font-mono overflow-auto max-h-[500px] code-block shadow-sm whitespace-pre-wrap break-words">
+                                <pre><code class="language-java break-words whitespace-pre-wrap">-</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Response Block -->
+                <div
+                    class="backdrop-blur-sm bg-glass-blue rounded-xl shadow-sm border border-blue-200/50 overflow-hidden">
+                    <div class="px-5 py-4 bg-blue-500/80 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white mr-2" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        <h2 class="text-base font-medium text-white">LLM Response</h2>
+                        <div
+                            class="ml-auto px-3 py-1 bg-white/80 backdrop-blur-xs text-blue-700 rounded-lg text-xs font-medium">
+                            Primary Decision Info</div>
+                    </div>
+                    <div class="p-5">
+                        <div id="response" class="space-y-2">
+                            <div class="text-sm font-medium text-blue-700 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                </svg>
+                                Check if this function is mentioned as vulnerable
+                            </div>
+                            <div
+                                class="p-4 bg-white/80 backdrop-blur-xs rounded-lg text-slate-700 text-sm font-mono overflow-auto max-h-[500px] code-block shadow-sm whitespace-pre-wrap break-words">
+                                <pre><code class="language-json break-words whitespace-pre-wrap">-</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Block -->
+            <div id="automatic-analysis-block"
+                class="hidden backdrop-blur-sm bg-glass-gray rounded-xl shadow-sm border border-slate-200/50 overflow-hidden mb-6">
+                <div class="px-5 py-3 bg-slate-500/80 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white mr-2" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    <h2 class="text-sm font-medium text-white">Automatic Analysis Results</h2>
+                    <div
+                        class="ml-auto px-2 py-0.5 bg-white/80 backdrop-blur-xs text-slate-600 rounded-lg text-xs font-medium">
+                        Supplementary Info</div>
+                </div>
+                <div class="p-4">
+                    <div id="function_analysis" class="space-y-2">
+                        <div class="text-xs font-medium text-slate-500 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-slate-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            System Analysis (Used for automatic processing)
+                        </div>
+                        <div
+                            class="p-3 bg-white/80 backdrop-blur-xs rounded-lg text-slate-600 text-xs font-mono overflow-auto max-h-[300px] code-block shadow-sm whitespace-pre-wrap break-words">
+                            <pre><code class="language-json break-words whitespace-pre-wrap">-</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Decision Panel -->
+        <div id="decision-buttons"
+            class="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-glass-white border-t border-white/20 shadow-lg transform transition-all duration-200">
+            <div class="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between">
+                <div class="flex items-center mb-3 sm:mb-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700 mr-2" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-slate-700 font-medium">Is this function vulnerable based on the function info and
+                        LLM response?</p>
+                </div>
+                <div id="manual-analysis-message"
+                    class="hidden mb-3 sm:mb-0 ml-0 sm:ml-4 px-3 py-1 bg-red-100 text-red-800 rounded-lg font-medium text-sm animate-pulse">
+                    Manual analysis required - Review automatic analysis and decide again
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button id="not-vulnerable-btn"
+                        class="btn-decision px-5 py-2.5 bg-green-500/90 backdrop-blur-xs text-white rounded-lg font-medium shadow-md hover:bg-green-600/90 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 hover:scale-105 transform">
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            Not Vulnerable (Q)
+                        </span>
+                    </button>
+                    <button id="vulnerable-btn"
+                        class="btn-decision px-5 py-2.5 bg-red-500/90 backdrop-blur-xs text-white rounded-lg font-medium shadow-md hover:bg-red-600/90 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 hover:scale-105 transform">
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Vulnerable (W)
+                        </span>
+                    </button>
+                    <button id="submit-decision"
+                        class="px-5 py-2.5 bg-blue-500/90 backdrop-blur-xs text-white rounded-lg font-medium shadow-md hover:bg-blue-600/90 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 hover:scale-105 transform">
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                            Submit Decision (S)
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Add padding at the bottom to prevent content from being hidden behind the floating panel -->
+        <div class="h-24 md:h-20"></div>
+
+        <!-- Removed Processed Files History as requested -->
+    </div>
+
+    <script src="{{ url_for('static', path='/script.js') }}?v={{ cache_buster }}"></script>
+
+    <!-- Immediate init script to force correct structure -->
+    <script>
+        // Force the processed files section to have the correct structure on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            // First, directly hide any tables with ID or SUB ID headers
+            var tableHeaders = document.querySelectorAll('th');
+            tableHeaders.forEach(function (th) {
+                if (th.textContent.includes('ID') || th.textContent.includes('SUB ID') || th.textContent.includes('STATUS')) {
+                    // Find the parent table and hide it completely
+                    var parentTable = th.closest('table');
+                    if (parentTable) {
+                        parentTable.style.display = 'none';
+                        parentTable.style.visibility = 'hidden';
+                        parentTable.style.height = '0';
+                        parentTable.style.width = '0';
+                        parentTable.style.position = 'absolute';
+                        parentTable.style.left = '-9999px';
+                    }
+                }
+            });
+
+            // Force an immediate update
+            setTimeout(function () {
+                if (typeof updateProcessedList === 'function') {
+                    updateProcessedList();
+                }
+            }, 500);
+
+            // Clear cache on page load to ensure fresh UI
+            if (typeof clearBrowserCache === 'function') {
+                // Only clear localStorage and sessionStorage, don't reload
+                localStorage.clear();
+                sessionStorage.clear();
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,17 @@
+# Studio-specific configuration
+
+# Machine identification
+machine:
+  name: "studio"
+  description: "Studio machine with larger models"
+
+# Model context window sizes for Studio machine
+models:
+  llama3:70b-instruct-q5_K_M: 8192
+  llama3.1:70b-instruct-q5_K_M: 131072
+  mistral-nemo:12b-instruct-2407-fp16: 1024000
+  mistral-large:123b-instruct-2407-q5_K_M: 32768
+  mistral-large:123b-instruct-2411-q5_K_M: 131072
+  mixtral:8x7b-instruct-v0.1-fp16: 32768
+  mixtral:8x22b-instruct-v0.1-q5_K_M: 65536
+  qwen2:72b-instruct-fp16: 32768

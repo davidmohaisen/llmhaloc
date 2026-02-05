@@ -1,0 +1,26 @@
+# Configuration file for LLM Vulnerability Function Localization Web Processing
+
+# Directory paths
+directories:
+  input: '../08_function_analysis_results'
+  output: '../10_function_results'
+  logs: '00_logs'
+
+# Server settings
+server:
+  host: '0.0.0.0'
+  port: 8080
+
+# Logging configuration
+logging:
+  level: 'WARNING'  # Only log warnings and errors
+  format: '%(asctime)s - %(levelname)s - %(message)s'
+  file_rotation: false  # Don't use rotating files, clear on startup instead
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+
+# UI settings
+ui:
+  title: 'Function Analysis Dashboard'
+  refresh_interval: 1000  # milliseconds
+  cache_busting: true

@@ -1,0 +1,28 @@
+# Configuration for the LLM Vulnerability Function Localization Web Processing System
+
+# Directories
+directories:
+  input: '../04_relevant_analysis_results'
+  output: '../06_relevant_analysis_final_results'
+  logs: '00_logs'
+  templates: 'templates'
+  static: 'static'
+
+# Server Configuration
+server:
+  host: '0.0.0.0'
+  port: 8080
+  debug: false
+
+# Logging Configuration
+logging:
+  level: 'DEBUG'  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: '%(asctime)s - %(levelname)s - %(message)s'
+  file_rotation: true
+  max_file_size_mb: 10
+  backup_count: 5
+
+# UI Configuration
+ui:
+  refresh_interval_ms: 1000  # Milliseconds between UI updates
+  max_displayed_history: 10  # Number of processed items to show in history

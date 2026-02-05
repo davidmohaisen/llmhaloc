@@ -1,0 +1,69 @@
+# Common configuration settings shared across all machines
+
+# Data paths
+data:
+  base_dir: "../../200_datasets_enhanced"
+  dataset_file: "11_final_enhanced_java.json"
+
+# Output configuration
+output:
+  result_dir: "../02_initial_results"
+  log_dir: "./00_logs"  # Local to the source code folder
+
+# Logging configuration
+logging:
+  # Separate log files for different log levels
+  errors_only: true  # Only store errors and warnings in a file, not info logs
+  error_log_file: "errors.log"  # File for storing errors and warnings
+
+# Ollama API options (common across all models)
+# These settings are consistent across all machines and models
+ollama_options:
+  # Core generation parameters
+  temperature: 0.5    # Controls randomness (0.0-1.0, lower = more deterministic)
+  seed: 42            # Random seed for reproducibility
+  num_predict: 20480   # Maximum number of tokens to generate
+  top_k: 40           # Limits token selection to top K most likely tokens
+  top_p: 0.5          # Nucleus sampling (consider tokens comprising top p% of probability mass)
+
+  # Mirostat sampling algorithm parameters (adaptive control for perplexity)
+  mirostat: 0           # 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0
+  mirostat_eta: 0.1     # Learning rate for Mirostat algorithm
+  mirostat_tau: 3.0     # Target entropy for Mirostat algorithm
+
+  # Model-specific parameters
+  num_gqa: 8            # Number of group-query attention heads
+
+  # Repetition control
+  repeat_last_n: -1     # Consider last N tokens for repetition penalty (-1 = all)
+  repeat_penalty: 1.5   # Penalty for repeating tokens (1.0 = no penalty)
+
+  # Additional sampling parameters
+  tfs_z: 1.0            # Tail free sampling parameter
+
+# System prompt used for all models
+system_prompt: |
+  Role: Expert Code Security Analyst
+
+  Your task is to analyze the provided Java source code alongside detailed Data Flow information. Always utilize the provided Data Flow metadata to assist you in determining whether the code contains security vulnerabilities and to precisely localize vulnerabilities at the function level.
+
+  Steps to follow:
+
+  Step 1: Initial Security Assessment
+  - Carefully review both the provided source code and its accompanying Data Flow metadata, including:
+    - Sources of user input or external data
+    - Propagation paths of sensitive data through the program
+    - Interactions between methods, especially data passing and transformations
+    - Points where data may leave the application or influence critical operations
+  - Use the provided Data Flow information to determine whether any vulnerabilities exist.
+  - Clearly state your initial findings. If no vulnerabilities exist, explicitly state:
+    "No vulnerabilities were identified in the provided code."
+
+  Step 2: Function-Level Vulnerability Analysis (Only if vulnerabilities are found)
+  - Identify and analyze each vulnerable function carefully, explicitly leveraging Data Flow details to pinpoint how vulnerabilities originate and propagate.
+  - For each vulnerable function identified, clearly provide:
+    - Function Signature: Presented clearly as functionName(type1 arg1, type2 arg2).
+    - Reason: Concisely explain why this function is considered vulnerable. Explicitly reference relevant Data Flow information (such as the source of unsafe inputs, dangerous propagation paths, problematic transformations, or insecure data sinks) that directly contribute to the vulnerability.
+
+  Output:
+  Communicate your findings clearly and understandably. Structured formatting is not required, but your explanation must explicitly reference Data Flow-derived information, ensuring the user clearly understands your reasoning behind each vulnerability assessment.
