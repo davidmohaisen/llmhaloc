@@ -1,0 +1,17 @@
+  Model
+    architecture        gemma    
+    parameters          8.5B     
+    context length      8192     
+    embedding length    3072     
+    quantization        F16      
+
+  Parameters
+    penalize_newline    false                
+    repeat_penalty      1                    
+    stop                "<start_of_turn>"    
+    stop                "<end_of_turn>"      
+
+  License
+    Gemma Terms of Use                  
+    Last modified: February 21, 2024    
+

@@ -1,0 +1,15 @@
+  Model
+    architecture        llama     
+    parameters          7.2B      
+    context length      32768     
+    embedding length    4096      
+    quantization        Q5_K_M    
+
+  Parameters
+    num_ctx    32768         
+    stop       "</s>"        
+    stop       "[INST]"      
+    stop       "[/INST]"     
+    stop       "<<SYS>>"     
+    stop       "<</SYS>>"    
+

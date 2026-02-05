@@ -1,0 +1,17 @@
+  Model
+    architecture        llama     
+    parameters          70.6B     
+    context length      8192      
+    embedding length    8192      
+    quantization        Q5_K_M    
+
+  Parameters
+    num_keep    24                       
+    stop        "<|start_header_id|>"    
+    stop        "<|end_header_id|>"      
+    stop        "<|eot_id|>"             
+
+  License
+    META LLAMA 3 COMMUNITY LICENSE AGREEMENT             
+    Meta Llama 3 Version Release Date: April 18, 2024    
+

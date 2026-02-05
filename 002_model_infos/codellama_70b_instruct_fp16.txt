@@ -1,0 +1,12 @@
+  Model
+    architecture        llama    
+    parameters          69.0B    
+    context length      4096     
+    embedding length    8192     
+    quantization        F16      
+
+  Parameters
+    stop    "Source:"         
+    stop    "Destination:"    
+    stop    "<step>"          
+

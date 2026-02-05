@@ -1,0 +1,15 @@
+  Model
+    architecture        llama    
+    parameters          33.7B    
+    context length      16384    
+    embedding length    8192     
+    quantization        F16      
+
+  Parameters
+    num_gqa                8             
+    rope_frequency_base    1e+06         
+    stop                   "[INST]"      
+    stop                   "[/INST]"     
+    stop                   "<<SYS>>"     
+    stop                   "<</SYS>>"    
+

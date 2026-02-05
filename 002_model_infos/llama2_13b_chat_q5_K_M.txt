@@ -1,0 +1,17 @@
+  Model
+    architecture        llama     
+    parameters          13.0B     
+    context length      4096      
+    embedding length    5120      
+    quantization        Q5_K_M    
+
+  Parameters
+    stop    "[INST]"      
+    stop    "[/INST]"     
+    stop    "<<SYS>>"     
+    stop    "<</SYS>>"    
+
+  License
+    LLAMA 2 COMMUNITY LICENSE AGREEMENT            
+    Llama 2 Version Release Date: July 18, 2023    
+

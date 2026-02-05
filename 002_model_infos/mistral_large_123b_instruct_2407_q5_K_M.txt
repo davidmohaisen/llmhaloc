@@ -1,0 +1,18 @@
+  Model
+    architecture        llama     
+    parameters          122.6B    
+    context length      32768     
+    embedding length    12288     
+    quantization        Q5_K_M    
+
+  Parameters
+    stop    "[INST]"     
+    stop    "[/INST]"    
+
+  License
+    # Mistral AI Research License                                                                           
+    If You want to use a Mistral Model, a Derivative or an Output for any purpose that is not expressly     
+      authorized under this Agreement, You must request a license from Mistral AI, which Mistral AI may       
+      grant to You in Mistral AI's sole discretion. To discuss such a license, please contact Mistral AI      
+      via the website contact form: https://mistral.ai/contact/                                               
+

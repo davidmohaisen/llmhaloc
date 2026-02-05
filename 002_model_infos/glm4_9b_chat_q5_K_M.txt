@@ -1,0 +1,16 @@
+  Model
+    architecture        chatglm    
+    parameters          9.4B       
+    context length      131072     
+    embedding length    4096       
+    quantization        Q5_K_M     
+
+  Parameters
+    stop    "<|system|>"       
+    stop    "<|user|>"         
+    stop    "<|assistant|>"    
+
+  License
+    The glm-4-9b License    
+    1. 定义                 
+

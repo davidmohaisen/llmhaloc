@@ -1,0 +1,15 @@
+  Model
+    architecture        deepseek2    
+    parameters          15.7B        
+    context length      163840       
+    embedding length    2048         
+    quantization        F16          
+
+  Parameters
+    stop    "User:"         
+    stop    "Assistant:"    
+
+  License
+    DEEPSEEK LICENSE AGREEMENT      
+    Version 1.0, 23 October 2023    
+

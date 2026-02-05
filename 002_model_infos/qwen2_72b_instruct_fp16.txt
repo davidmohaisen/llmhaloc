@@ -1,0 +1,15 @@
+  Model
+    architecture        qwen2    
+    parameters          72.7B    
+    context length      32768    
+    embedding length    8192     
+    quantization        F16      
+
+  Parameters
+    stop    "<|im_start|>"    
+    stop    "<|im_end|>"      
+
+  License
+    Tongyi Qianwen LICENSE AGREEMENT               
+    Tongyi Qianwen Release Date: August 3, 2023    
+

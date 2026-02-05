@@ -1,0 +1,16 @@
+  Model
+    architecture        phi3      
+    parameters          14.0B     
+    context length      131072    
+    embedding length    5120      
+    quantization        F16       
+
+  Parameters
+    stop    "<|end|>"          
+    stop    "<|user|>"         
+    stop    "<|assistant|>"    
+
+  License
+    Microsoft.                              
+    Copyright (c) Microsoft Corporation.    
+

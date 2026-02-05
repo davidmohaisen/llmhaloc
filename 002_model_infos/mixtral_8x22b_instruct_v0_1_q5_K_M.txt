@@ -1,0 +1,15 @@
+  Model
+    architecture        llama     
+    parameters          140.6B    
+    context length      65536     
+    embedding length    6144      
+    quantization        Q5_K_M    
+
+  Parameters
+    stop    "[INST]"     
+    stop    "[/INST]"    
+
+  License
+    Apache License               
+    Version 2.0, January 2004    
+
