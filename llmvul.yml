@@ -1,0 +1,43 @@
+name: llmvul
+channels:
+  - defaults
+  - huggingface
+  - anaconda
+  - conda-forge
+dependencies:
+  - python=3.11 # Specify the Python version
+  - pip
+  - pip:
+      - autogen # Replace with the actual version of autogen needed
+      - pyautogen
+      - langchain # Replace with the actual version of langchain needed
+      - pypdf
+      - jq
+      - litellm
+      - anyio
+      - crewai
+      - langchain-community
+      - numpy
+      - torch
+      - transformers
+      - pytz
+      - pandas
+      - scikit-learn
+      - tree-sitter
+      - chardet
+      - datasets
+      - dask
+      - dask-expr
+      - fastparquet
+      - requests
+      - nvdlib
+      - seaborn
+      - javalang
+      - ollama
+      - PyQt5
+      - markdown2
+      - PyQtWebEngine
+      - spacy
+      - colorama
+      - fastapi
+      - statsmodels
